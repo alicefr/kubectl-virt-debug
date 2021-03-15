@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/klog/v2"
 	"os"
 	"os/exec"
 )
@@ -12,6 +13,7 @@ const (
 	volume   = "volume"
 	contName = "virt"
 	diskDir  = "/disks"
+	podName  = "libguestfs-tools"
 )
 
 func createPodSpec(pvc, image, cmd string) (string, error) {
@@ -61,6 +63,7 @@ func CreateInteractivePodWithPVC(config, pvc, image string) error {
 	os.Setenv("KUBECONFIG", config)
 	args := []string{
 		"run",
+		podName,
 		"-ti",
 		"--restart=Never",
 		"--rm",
@@ -70,9 +73,9 @@ func CreateInteractivePodWithPVC(config, pvc, image string) error {
 	if err != nil {
 		return err
 	}
-	args = append(args, fmt.Sprintf("--overrides \"%s\""), o)
-	args = append(args, fmt.Sprintf("-- %s", command))
+	args = append(args, fmt.Sprintf("--overrides='%s'", o))
 	cmd := exec.Command("kubectl", args...)
+	klog.Infof("Execute: %s", cmd.String())
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
