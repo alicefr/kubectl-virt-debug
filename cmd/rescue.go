@@ -41,6 +41,7 @@ var rescueCmd = &cobra.Command{
 			os.Exit(0)
 		}
 		klog.Infof("Create virt-rescue")
+		utils.CreateInteractivePodWithPVC(Config, PvcClaimName, Image)
 		return nil
 	},
 }
