@@ -49,7 +49,17 @@ var sparsifyCmd = &cobra.Command{
 	},
 }
 
+// sparsifyCmd represents the sparsify command
+var shellCmd = &cobra.Command{
+	Use:   "shell",
+	Short: "Start a shell to the libguestfs pod",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return runInteractivePod("/bin/bash", []string{})
+	},
+}
+
 func init() {
 	rootCmd.AddCommand(rescueCmd)
 	rootCmd.AddCommand(sparsifyCmd)
+	rootCmd.AddCommand(shellCmd)
 }
