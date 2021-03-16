@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"fmt"
 	"github.com/spf13/cobra"
 )
 
@@ -18,11 +17,11 @@ var customizeCmd = &cobra.Command{
 		argsCustomize := []string{
 			"-a", "disk.img"}
 		if rootPassword != "" {
-			argsCustomize = append(argsCustomize, fmt.Sprintf("--root-password %s", rootPassword))
+			argsCustomize = append(argsCustomize, "--root-password", rootPassword)
 		}
 
 		if packages != "" {
-			argsCustomize = append(argsCustomize, fmt.Sprintf("--install %s", packages))
+			argsCustomize = append(argsCustomize, "--install", packages)
 		}
 
 		return runInteractivePod("virt-customize", argsCustomize)
