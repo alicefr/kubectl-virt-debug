@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"github.com/spf13/cobra"
+	log "k8s.io/klog/v2"
 	"os"
 )
 
@@ -24,7 +25,7 @@ var rootCmd = &cobra.Command{
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
-		fmt.Println(err)
+		log.Errorf("Faild: %v", err)
 		os.Exit(1)
 	}
 }
@@ -39,4 +40,11 @@ func init() {
 	rootCmd.PersistentFlags().StringVarP(&Config, "config", "c", config, "path to kubernetes config file")
 	rootCmd.PersistentFlags().StringVarP(&Image, "image", "i", defaultImage, fmt.Sprintf("overwrite default container image"))
 	rootCmd.MarkFlagRequired("pvc")
+
+	if PvcClaimName == "" {
+		log.Errorf("PVC is required")
+		rootCmd.Help()
+		os.Exit(1)
+	}
+
 }

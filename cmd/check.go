@@ -3,7 +3,7 @@ package cmd
 import (
 	"github.com/alicefr/kubectl-virt-debug/utils"
 	"github.com/spf13/cobra"
-	"k8s.io/klog/v2"
+	log "k8s.io/klog/v2"
 	"os"
 )
 
@@ -18,7 +18,7 @@ var checkCmd = &cobra.Command{
 			return err
 		}
 		if !client.ExistsPVC(PvcClaimName, Namespace) {
-			klog.Infof("The PVC %s doesn't exist", PvcClaimName)
+			log.Infof("The PVC %s doesn't exist", PvcClaimName)
 			os.Exit(1)
 		}
 		inUse, err = client.IsPVCinUse(PvcClaimName, Namespace)
@@ -27,10 +27,10 @@ var checkCmd = &cobra.Command{
 		}
 
 		if inUse {
-			klog.Infof("The PVC %s is in use", PvcClaimName)
+			log.Infof("The PVC %s is in use", PvcClaimName)
 			os.Exit(0)
 		}
-		klog.Infof("PVC %s is not currently used", PvcClaimName)
+		log.Infof("PVC %s is not currently used", PvcClaimName)
 		return nil
 	},
 }
