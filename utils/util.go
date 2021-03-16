@@ -7,6 +7,21 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/klog/v2"
+	"os"
+	"os/exec"
+	"time"
+)
+
+const (
+	volume   = "volume"
+	contName = "virt"
+	diskDir  = "/disks"
+	podName  = "libguestfs-tools"
+)
+
+var (
+	timeout = 200 * time.Second
 )
 
 type K8sClient struct {
@@ -32,7 +47,17 @@ func (client *K8sClient) ExistsPVC(pvc, ns string) bool {
 	if err != nil {
 		return false
 	}
-	fmt.Printf("XXX %v \n", p)
+	if p.Name == "" {
+		return false
+	}
+	return true
+}
+
+func (client *K8sClient) ExistsPod(pod, ns string) bool {
+	p, err := client.CoreV1().Pods(ns).Get(context.TODO(), pod, metav1.GetOptions{})
+	if err != nil {
+		return false
+	}
 	if p.Name == "" {
 		return false
 	}
@@ -51,6 +76,35 @@ func (client *K8sClient) IsPVCinUse(pvc, ns string) (bool, error) {
 	return false, nil
 }
 
+func (client *K8sClient) waitForContainerRunning(pod, cont, ns string, timeout time.Duration) error {
+	klog.Infof("Wait for the pod to be started")
+	c := make(chan string, 1)
+	go func() {
+		for {
+			pod, err := client.CoreV1().Pods(ns).Get(context.TODO(), pod, metav1.GetOptions{})
+			if err != nil {
+				c <- err.Error()
+			}
+			if pod.Status.Phase == corev1.PodRunning {
+				c <- "completed"
+
+			}
+			time.Sleep(1 * time.Millisecond)
+		}
+	}()
+	select {
+	case res := <-c:
+		if res == "completed" {
+			klog.Infof("Pod started")
+			return nil
+		}
+		return fmt.Errorf(res)
+	case <-time.After(timeout):
+		return fmt.Errorf("timeout in waiting for the containers to be started in pod %s", pod)
+	}
+
+}
+
 func (client *K8sClient) getPodsForPVC(pvcName, ns string) ([]corev1.Pod, error) {
 	nsPods, err := client.CoreV1().Pods(ns).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
@@ -60,6 +114,9 @@ func (client *K8sClient) getPodsForPVC(pvcName, ns string) ([]corev1.Pod, error)
 	var pods []corev1.Pod
 
 	for _, pod := range nsPods.Items {
+		if pod.Name == podName {
+			continue
+		}
 		for _, volume := range pod.Spec.Volumes {
 			if volume.VolumeSource.PersistentVolumeClaim != nil && volume.VolumeSource.PersistentVolumeClaim.ClaimName == pvcName {
 				pods = append(pods, pod)
@@ -68,4 +125,85 @@ func (client *K8sClient) getPodsForPVC(pvcName, ns string) ([]corev1.Pod, error)
 	}
 
 	return pods, nil
+}
+
+func createPod(pvc, image, cmd string, args []string) *corev1.Pod {
+	return &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: podName,
+		},
+		Spec: corev1.PodSpec{
+			Volumes: []corev1.Volume{
+				{
+					Name: volume,
+					VolumeSource: corev1.VolumeSource{
+						PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+							ClaimName: pvc,
+							ReadOnly:  false,
+						},
+					},
+				},
+			},
+			Containers: []corev1.Container{
+				{
+					Name:       contName,
+					Image:      image,
+					Command:    []string{cmd},
+					Args:       args,
+					WorkingDir: diskDir,
+					Env: []corev1.EnvVar{
+						{
+							Name:  "LIBGUESTFS_BACKEND",
+							Value: "direct",
+						},
+					},
+					VolumeMounts: []corev1.VolumeMount{
+						{
+							Name:      volume,
+							ReadOnly:  false,
+							MountPath: diskDir,
+						},
+					},
+					ImagePullPolicy: corev1.PullIfNotPresent,
+					Stdin:           true,
+					TTY:             true,
+				},
+			},
+			RestartPolicy: corev1.RestartPolicyNever,
+		},
+	}
+}
+
+func (client *K8sClient) CreateInteractivePodWithPVC(config, pvc, image, ns, command string, args []string) error {
+	var err error
+	if !client.ExistsPod(podName, ns) {
+		klog.Infof("Pod %s doesn't exist. create", podName)
+		pod := createPod(pvc, image, command, args)
+		_, err = client.CoreV1().Pods(ns).Create(context.TODO(), pod, metav1.CreateOptions{})
+		if err != nil {
+			return err
+		}
+	}
+	err = client.waitForContainerRunning(podName, contName, ns, timeout)
+	if err != nil {
+		return err
+	}
+	os.Setenv("KUBECONFIG", config)
+	argsKubectl := []string{
+		"attach",
+		podName,
+		"-ti",
+		"-c", contName,
+	}
+	cmd := exec.Command("kubectl", argsKubectl...)
+	klog.Infof("Execute: %s", cmd.String())
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Stdin = os.Stdin
+	return cmd.Run()
+}
+
+func (client *K8sClient) RemovePod(ns string) error {
+	klog.Infof("Remove pod %s", podName)
+	return client.CoreV1().Pods(ns).Delete(context.TODO(), podName, metav1.DeleteOptions{})
 }

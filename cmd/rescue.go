@@ -32,6 +32,10 @@ var rescueCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+		if !client.ExistsPVC(PvcClaimName, Namespace) {
+			klog.Infof("The PVC %s doesn't exist", PvcClaimName)
+			os.Exit(1)
+		}
 		inUse, err = client.IsPVCinUse(PvcClaimName, Namespace)
 		if err != nil {
 			return err
@@ -40,9 +44,11 @@ var rescueCmd = &cobra.Command{
 			klog.Infof("PVC %s is in use, and virt-rescue cannot be run on the pvc until is in used", PvcClaimName)
 			os.Exit(0)
 		}
-		klog.Infof("Create virt-rescue")
-		utils.CreateInteractivePodWithPVC(Config, PvcClaimName, Image)
-		return nil
+		defer client.RemovePod(Namespace)
+		klog.Infof("Attach to libguestfs pod")
+		argsRescue := []string{"-a", "disk.img"}
+		err = client.CreateInteractivePodWithPVC(Config, PvcClaimName, Image, Namespace, "virt-rescue", argsRescue)
+		return err
 	},
 }
 

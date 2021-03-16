@@ -50,7 +50,7 @@ func init() {
 		config = "~/.kube/config"
 	}
 	rootCmd.PersistentFlags().StringVarP(&PvcClaimName, "pvc", "p", "", "pvc claim name")
-	rootCmd.PersistentFlags().StringVarP(&Namespace, "ns", "n", "", "namspace of the pvc")
+	rootCmd.PersistentFlags().StringVarP(&Namespace, "ns", "n", "default", "namspace of the pvc")
 	rootCmd.PersistentFlags().StringVarP(&Config, "config", "c", config, "path to kubernetes config file")
 	rootCmd.PersistentFlags().StringVarP(&Image, "image", "i", defaultImage, fmt.Sprintf("overwrite default container image"))
 	rootCmd.MarkFlagRequired("pvc")
