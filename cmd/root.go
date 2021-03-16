@@ -17,7 +17,7 @@ var (
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "virt-debug",
+	Use:   "guestfs",
 	Short: "kubectl plugin to create libguestfs pod",
 }
 
