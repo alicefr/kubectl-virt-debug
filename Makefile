@@ -1,10 +1,15 @@
 BIN=kubectl-guestfs 
+BIN_INIT_CONT=check-pvc
 build:
 	mkdir -p bin/
 	go build -o bin/$(BIN) main.go
+	go build -o bin/$(BIN_INIT_CONT) cmd/initcontainer/main.go
 
 image:
 	docker build -t libguestfs-tools -f dockerfiles/Dockerfile .
+
+image-init:
+	docker build -t check-pvc -f dockerfiles/init/Dockerfile .
 
 install:
 	install bin/$(BIN) /usr/local/bin
