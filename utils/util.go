@@ -6,6 +6,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	log "k8s.io/klog/v2"
 	"os"
@@ -28,18 +29,34 @@ type K8sClient struct {
 	*kubernetes.Clientset
 }
 
+func newK8sClient(config *rest.Config) (*K8sClient, error) {
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		return &K8sClient{}, err
+	}
+
+	return &K8sClient{
+		clientset,
+	}, nil
+}
+
 func CreateClient(kubeconfig string) (*K8sClient, error) {
 	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
 	if err != nil {
 		return nil, err
 	}
 
-	client, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		return nil, err
-	}
-	return &K8sClient{client}, nil
+	return newK8sClient(config)
 
+}
+
+func CreateClientInCluster() (*K8sClient, error) {
+	config, err := rest.InClusterConfig()
+	if err != nil {
+		return &K8sClient{}, err
+	}
+
+	return newK8sClient(config)
 }
 
 func (client *K8sClient) ExistsPVC(pvc, ns string) bool {
