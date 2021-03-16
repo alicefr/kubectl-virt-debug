@@ -7,7 +7,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
-	"k8s.io/klog/v2"
+	log "k8s.io/klog/v2"
 	"os"
 	"os/exec"
 	"time"
@@ -77,7 +77,7 @@ func (client *K8sClient) IsPVCinUse(pvc, ns string) (bool, error) {
 }
 
 func (client *K8sClient) waitForContainerRunning(pod, cont, ns string, timeout time.Duration) error {
-	klog.Infof("Wait for the pod to be started")
+	log.Infof("Wait for the pod to be started")
 	c := make(chan string, 1)
 	go func() {
 		for {
@@ -95,7 +95,7 @@ func (client *K8sClient) waitForContainerRunning(pod, cont, ns string, timeout t
 	select {
 	case res := <-c:
 		if res == "completed" {
-			klog.Infof("Pod started")
+			log.Infof("Pod started")
 			return nil
 		}
 		return fmt.Errorf(res)
@@ -177,7 +177,7 @@ func createPod(pvc, image, cmd string, args []string) *corev1.Pod {
 func (client *K8sClient) CreateInteractivePodWithPVC(config, pvc, image, ns, command string, args []string) error {
 	var err error
 	if !client.ExistsPod(podName, ns) {
-		klog.Infof("Pod %s doesn't exist. create", podName)
+		log.Infof("Pod %s doesn't exist. create", podName)
 		pod := createPod(pvc, image, command, args)
 		_, err = client.CoreV1().Pods(ns).Create(context.TODO(), pod, metav1.CreateOptions{})
 		if err != nil {
@@ -196,7 +196,7 @@ func (client *K8sClient) CreateInteractivePodWithPVC(config, pvc, image, ns, com
 		"-c", contName,
 	}
 	cmd := exec.Command("kubectl", argsKubectl...)
-	klog.Infof("Execute: %s", cmd.String())
+	log.Infof("Execute: %s", cmd.String())
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
@@ -204,6 +204,6 @@ func (client *K8sClient) CreateInteractivePodWithPVC(config, pvc, image, ns, com
 }
 
 func (client *K8sClient) RemovePod(ns string) error {
-	klog.Infof("Remove pod %s", podName)
+	log.Infof("Remove pod %s", podName)
 	return client.CoreV1().Pods(ns).Delete(context.TODO(), podName, metav1.DeleteOptions{})
 }
