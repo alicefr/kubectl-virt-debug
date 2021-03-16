@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"github.com/alicefr/kubectl-virt-debug/utils"
+	"github.com/alicefr/kubectl-virt-guestfs/utils"
 	"github.com/spf13/cobra"
 	log "k8s.io/klog/v2"
 	"os"
@@ -25,7 +25,9 @@ func runInteractivePod(command string, args []string) error {
 		log.Infof("PVC %s is in use, and virt-rescue cannot be run on the pvc until is in used", PvcClaimName)
 		os.Exit(0)
 	}
-	defer client.RemovePod(Namespace)
+	if !Running {
+		defer client.RemovePod(Namespace)
+	}
 	return client.CreateInteractivePodWithPVC(Config, PvcClaimName, Image, Namespace, command, args)
 }
 
@@ -49,7 +51,7 @@ var sparsifyCmd = &cobra.Command{
 	},
 }
 
-// sparsifyCmd represents the sparsify command
+// shellCmd represents the shell command
 var shellCmd = &cobra.Command{
 	Use:   "shell",
 	Short: "Start a shell to the libguestfs pod",

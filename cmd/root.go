@@ -13,6 +13,7 @@ var (
 	Image        string
 	Namespace    string
 	Config       string
+	Running      bool
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -36,15 +37,16 @@ func init() {
 		config = "~/.kube/config"
 	}
 	rootCmd.PersistentFlags().StringVarP(&PvcClaimName, "pvc", "p", "", "pvc claim name")
+	rootCmd.MarkFlagRequired("pvc")
 	rootCmd.PersistentFlags().StringVarP(&Namespace, "ns", "n", "default", "namspace of the pvc")
 	rootCmd.PersistentFlags().StringVarP(&Config, "config", "c", config, "path to kubernetes config file")
 	rootCmd.PersistentFlags().StringVarP(&Image, "image", "i", defaultImage, fmt.Sprintf("overwrite default container image"))
-	rootCmd.MarkFlagRequired("pvc")
+	rootCmd.PersistentFlags().BoolVar(&Running, "running", false, "let the libguestfs-tool pod running")
 
-	if PvcClaimName == "" {
-		log.Errorf("PVC is required")
-		rootCmd.Help()
-		os.Exit(1)
-	}
+	//	if PvcClaimName == "" {
+	//		log.Errorf("PVC is required")
+	//		rootCmd.Help()
+	//		os.Exit(1)
+	//	}
 
 }

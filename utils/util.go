@@ -85,8 +85,8 @@ func (client *K8sClient) waitForContainerRunning(pod, cont, ns string, timeout t
 			if err != nil {
 				c <- err.Error()
 			}
-			if pod.Status.Phase == corev1.PodRunning {
-				c <- "completed"
+			if pod.Status.Phase != corev1.PodPending {
+				c <- string(pod.Status.Phase)
 
 			}
 			time.Sleep(1 * time.Millisecond)
@@ -94,11 +94,11 @@ func (client *K8sClient) waitForContainerRunning(pod, cont, ns string, timeout t
 	}()
 	select {
 	case res := <-c:
-		if res == "completed" {
+		if res == string(corev1.PodRunning) {
 			log.Infof("Pod started")
 			return nil
 		}
-		return fmt.Errorf(res)
+		return fmt.Errorf("Pod is not in running state but got %s", res)
 	case <-time.After(timeout):
 		return fmt.Errorf("timeout in waiting for the containers to be started in pod %s", pod)
 	}

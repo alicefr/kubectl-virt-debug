@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"github.com/alicefr/kubectl-virt-debug/utils"
+	"github.com/alicefr/kubectl-virt-guestfs/utils"
 	"github.com/spf13/cobra"
 	log "k8s.io/klog/v2"
 	"os"

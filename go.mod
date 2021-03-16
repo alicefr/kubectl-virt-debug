@@ -1,4 +1,4 @@
-module github.com/alicefr/kubectl-virt-debug
+module github.com/alicefr/kubectl-virt-guestfs
 
 go 1.15
 
