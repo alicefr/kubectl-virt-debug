@@ -14,7 +14,7 @@ import (
 	"time"
 )
 
-const (
+var (
 	volume   = "volume"
 	contName = "virt"
 	diskDir  = "/disks"
@@ -59,15 +59,15 @@ func CreateClientInCluster() (*K8sClient, error) {
 	return newK8sClient(config)
 }
 
-func (client *K8sClient) ExistsPVC(pvc, ns string) bool {
+func (client *K8sClient) ExistsPVC(pvc, ns string) (bool, error) {
 	p, err := client.CoreV1().PersistentVolumeClaims(ns).Get(context.TODO(), pvc, metav1.GetOptions{})
 	if err != nil {
-		return false
+		return false, err
 	}
 	if p.Name == "" {
-		return false
+		return false, nil
 	}
-	return true
+	return true, nil
 }
 
 func (client *K8sClient) ExistsPod(pod, ns string) bool {
@@ -83,7 +83,7 @@ func (client *K8sClient) ExistsPod(pod, ns string) bool {
 
 // IsPVCinUse returns if the pvc is currently used by a pod
 func (client *K8sClient) IsPVCinUse(pvc, ns string) (bool, error) {
-	pods, err := client.getPodsForPVC(pvc, ns)
+	pods, err := client.GetPodsForPVC(pvc, ns)
 	if err != nil {
 		return false, err
 	}
@@ -122,7 +122,7 @@ func (client *K8sClient) waitForContainerRunning(pod, cont, ns string, timeout t
 
 }
 
-func (client *K8sClient) getPodsForPVC(pvcName, ns string) ([]corev1.Pod, error) {
+func (client *K8sClient) GetPodsForPVC(pvcName, ns string) ([]corev1.Pod, error) {
 	nsPods, err := client.CoreV1().Pods(ns).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return []corev1.Pod{}, err
@@ -131,9 +131,6 @@ func (client *K8sClient) getPodsForPVC(pvcName, ns string) ([]corev1.Pod, error)
 	var pods []corev1.Pod
 
 	for _, pod := range nsPods.Items {
-		if pod.Name == podName {
-			continue
-		}
 		for _, volume := range pod.Spec.Volumes {
 			if volume.VolumeSource.PersistentVolumeClaim != nil && volume.VolumeSource.PersistentVolumeClaim.ClaimName == pvcName {
 				pods = append(pods, pod)

@@ -23,7 +23,8 @@ func runInteractivePod(command string, args []string) error {
 	if err != nil {
 		return err
 	}
-	if !client.ExistsPVC(PvcClaimName, Namespace) {
+	exist, _ := client.ExistsPVC(PvcClaimName, Namespace)
+	if !exist {
 		log.Infof("The PVC %s doesn't exist", PvcClaimName)
 		os.Exit(1)
 	}

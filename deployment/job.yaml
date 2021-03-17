@@ -1,0 +1,89 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  creationTimestamp: null
+  name: sparsify-job
+spec:
+  template:
+    metadata:
+      creationTimestamp: null
+    spec:
+      serviceAccount: check-pvc-sa
+      initContainers:
+      - image: registry:5000/check-pvc
+        name: check-pvc
+        command: ["/usr/bin/check-pvc"]
+        args:
+          - "-ns"
+          - "$(POD_NAMESPACE)"
+          - "-pvc"
+          - "$(PVC)"
+          - "-skip-pods"
+          - "$(POD_NAME)"
+          - "-label"
+          - "job-name=sparsify-job"
+        env:
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: PVC
+          value: my-data-volume
+        imagePullPolicy: Always
+        resources: {}
+      containers:
+        - image: registry:5000/libguestfs-tools
+          name: sparsify
+          command: ["virt-sparsify"]
+          args:
+          - "--in-place"
+          - "/disks/disk.img"
+          env:
+          - name: PVC
+            value: my-data-volume
+          - name: LIBGUESTFS_BACKEND
+            value: direct
+          volumeMounts:
+          - mountPath: "/disks"
+            name: pvc
+      volumes:
+      - name: pvc
+        persistentVolumeClaim:
+          claimName: my-data-volume
+      restartPolicy: Never
+status: {}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: check-pvc-sa
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: check-pvc-role
+rules:
+- apiGroups: [""]
+  resources: ["persistentvolumeclaims"]
+  verbs: ["get"]
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get","list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: check-pvc
+subjects:
+- kind: ServiceAccount
+  name: check-pvc-sa
+roleRef:
+  kind: Role
+  name: check-pvc-role
+  apiGroup: rbac.authorization.k8s.io
+---
+
