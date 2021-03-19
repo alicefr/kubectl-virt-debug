@@ -5,10 +5,12 @@ build:
 	go build -o bin/$(BIN) main.go
 	go build -o bin/$(BIN_INIT_CONT) cmd/initcontainer/main.go
 
-image:
+images: image-libguestfs image-init
+
+image-libguestfs: build
 	docker build -t libguestfs-tools -f dockerfiles/Dockerfile .
 
-image-init:
+image-init: build
 	docker build -t check-pvc -f dockerfiles/init/Dockerfile .
 
 install:
