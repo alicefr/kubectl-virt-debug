@@ -33,7 +33,7 @@ func runInteractivePod(command string, args []string) error {
 		return err
 	}
 	if inUse {
-		log.Infof("PVC %s is in use, and virt-rescue cannot be run on the pvc until is in used", PvcClaimName)
+		log.Infof("PVC %s is in use by another pod", PvcClaimName)
 		os.Exit(0)
 	}
 	if !Running {
