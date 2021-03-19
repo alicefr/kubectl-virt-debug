@@ -21,7 +21,7 @@ spec:
           - "-skip-pods"
           - "$(POD_NAME)"
           - "-label"
-          - "job-name=sparsify-job"
+          - "job-name=$(JOB_NAME)"
         env:
         - name: POD_NAMESPACE
           valueFrom:
@@ -33,6 +33,8 @@ spec:
               fieldPath: metadata.name
         - name: PVC
           value: my-data-volume
+        - name: JOB_NAME
+          value: sparsify-job
         imagePullPolicy: Always
         resources: {}
       containers:
