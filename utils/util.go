@@ -126,6 +126,11 @@ func (client *K8sClient) waitForContainerRunning(pod, cont, ns string, timeout t
 				c <- string(pod.Status.Phase)
 
 			}
+			for _, c := range pod.Status.ContainerStatuses {
+				if c.State.Waiting != nil {
+					log.Infof("Waiting for container %s still in pending, reason: %s, message: %s", c.Name, c.State.Waiting.Reason, c.State.Waiting.Message)
+				}
+			}
 			time.Sleep(1 * time.Millisecond)
 		}
 	}()
